@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de" data-lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FM2026 Wonderkid Scout</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="splash-logo">FM2026 SCOUT</div>
+  <div class="splash-tagline" data-i18n="tagline">Wonderkid Database · 0–20M €</div>
+  <div class="splash-sources">
+    <span class="splash-src" style="color:#00cfff;border-color:#00cfff44">fmscout.com</span>
+    <span class="splash-src" style="color:#f0b429;border-color:#f0b42944">fminside.net</span>
+    <span class="splash-src" style="color:#20d460;border-color:#20d46044">fm base</span>
+    <span class="splash-src" style="color:#f03e3e;border-color:#f03e3e44">YouTube</span>
+  </div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+  <div class="splash-status" id="splashStatus">Verbinde mit Firebase …</div>
+</div>
+
+<!-- SETUP OVERLAY -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-box">
+    <div class="setup-logo">⚙️ SETUP</div>
+    <h2>Firebase konfigurieren</h2>
+    <p>Einmalig deine Firebase-Zugangsdaten eintragen. <a href="SETUP.md" target="_blank">📖 Anleitung</a></p>
+    <div class="setup-fields">
+      <div class="sf-row"><label>API Key</label><input type="text" id="cfg-apiKey" placeholder="AIzaSy..."></div>
+      <div class="sf-row"><label>Auth Domain</label><input type="text" id="cfg-authDomain" placeholder="projekt.firebaseapp.com"></div>
+      <div class="sf-row"><label>Project ID</label><input type="text" id="cfg-projectId" placeholder="projekt-id"></div>
+      <div class="sf-row"><label>Storage Bucket</label><input type="text" id="cfg-storageBucket" placeholder="projekt.appspot.com"></div>
+      <div class="sf-row"><label>App ID</label><input type="text" id="cfg-appId" placeholder="1:xxx:web:xxx"></div>
+    </div>
+    <div class="setup-hint">🔑 Groq Key (kostenlos · groq.com):
+      <input type="password" id="cfg-groqKey" placeholder="gsk_...">
+    </div>
+    <hr class="setup-divider">
+    <div class="setup-hint">🔒 App-Passwort (optional — leer lassen = kein Schutz):
+      <input type="password" id="cfg-appPassword" placeholder="Passwort für Login-Schutz …">
+    </div>
+    <button class="setup-btn" onclick="saveConfigWithPw()">✓ Speichern &amp; starten</button>
+  </div>
+</div>
+
+<!-- GENERATE OVERLAY -->
+<div class="gen-overlay" id="genOverlay">
+  <div class="gen-title">DATEN WERDEN GENERIERT</div>
+  <div class="gen-subtitle">KI analysiert FM-Quellen · Firebase wird befüllt</div>
+  <div class="gen-steps" id="genSteps"></div>
+  <div class="gen-bar-wrap"><div class="gen-bar" id="genBar"></div></div>
+  <div class="gen-info" id="genInfo">Bitte warten …</div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">⚽</div>
+    <div><h1>FM2026 SCOUT</h1><span class="logo-sub" data-i18n="tagline">Wonderkid Database · 0–20M €</span></div>
+  </div>
+  <div class="hright">
+    <div class="src-tags">
+      <span class="stag stag-a">FM-Scout</span>
+      <span class="stag stag-b">FMInside</span>
+      <span class="stag stag-c">FM Base</span>
+      <span class="stag stag-d">Zealand/Squawka</span>
+    </div>
+    <!-- NAV TABS -->
+    <div class="nav-tabs">
+      <button class="ntab active" onclick="showView('scout')" id="tab-scout" data-i18n="nav_scout">🔍 Scout</button>
+      <button class="ntab" onclick="showView('shortlist')" id="tab-shortlist">⭐ <span data-i18n="nav_shortlist">Shortlist</span> <span class="sl-count" id="slCount">0</span></button>
+      <button class="ntab" onclick="showView('compare')" id="tab-compare" data-i18n="nav_compare">⚖ Vergleich</button>
+      <button class="ntab" onclick="showView('budget')" id="tab-budget" data-i18n="nav_budget">💰 Budget</button>
+    </div>
+    <!-- LANG + STATUS -->
+    <select class="lang-sel" onchange="setLang(this.value)">
+      <option value="de">🇩🇪 DE</option>
+      <option value="en">🇬🇧 EN</option>
+      <option value="fr">🇫🇷 FR</option>
+    </select>
+    <div class="fb-status"><div class="fb-dot" id="fbDot"></div><span id="fbLabel">Firebase</span></div>
+    <button class="notify-btn" id="notifyBtn" onclick="notifyEnabled?disableNotifications():requestNotifyPermission()" title="Push-Benachrichtigungen">🔕 Aus</button>
+    <button class="icon-btn" onclick="document.getElementById('setupOverlay').style.display='flex'" title="Einstellungen">⚙️</button>
+    <button class="icon-btn" onclick="logout()" title="Ausloggen" style="display:none" id="logoutBtn">🔒</button>
+  </div>
+</header>
+
+<!-- TOOLBAR (scout view) -->
+<div class="toolbar" id="scoutToolbar">
+  <div class="sw"><input type="text" id="sq" placeholder="Spieler, Club, Nation …" oninput="doFilter()"><span class="sw-icon">⌕</span></div>
+  <div class="pf-wrap">
+    <button class="pf on" onclick="setPos('Alle',this)" data-i18n="all">Alle</button>
+    <button class="pf" onclick="setPos('ST',this)">ST</button>
+    <button class="pf" onclick="setPos('CAM',this)">CAM</button>
+    <button class="pf" onclick="setPos('CM',this)">CM</button>
+    <button class="pf" onclick="setPos('LW',this)">LW/RW</button>
+    <button class="pf" onclick="setPos('CB',this)">CB</button>
+    <button class="pf" onclick="setPos('LB',this)">LB/RB</button>
+    <button class="pf" onclick="setPos('GK',this)">GK</button>
+  </div>
+  <select class="tsel" id="sortSel" onchange="doFilter()">
+    <option value="pot">↓ Potential</option>
+    <option value="ca_desc">↓ CA</option>
+    <option value="price_asc">Ablöse ↑</option>
+    <option value="price_desc">Ablöse ↓</option>
+    <option value="age">Jüngste</option>
+    <option value="name">A–Z</option>
+  </select>
+  <select class="tsel" id="lgSel" onchange="doFilter()">
+    <option value="">Alle Ligen</option>
+    <option>Bundesliga</option><option>Premier League</option><option>La Liga</option>
+    <option>Serie A</option><option>Ligue 1</option><option>Eredivisie</option><option>Other</option>
+  </select>
+  <select class="tsel tsel-tactic" id="myTacticSel" onchange="setMyTactic(this.value)">
+    <option value="4-3-3">⚽ 4-3-3</option>
+    <option value="4-2-3-1">⚽ 4-2-3-1</option>
+    <option value="4-4-2">⚽ 4-4-2</option>
+    <option value="3-5-2">⚽ 3-5-2</option>
+    <option value="4-1-4-1">⚽ 4-1-4-1</option>
+    <option value="5-3-2">⚽ 5-3-2</option>
+  </select>
+  <button class="gen-btn" id="genBtn" onclick="generateData()">
+    <span class="gicon">✦</span><span class="spin">↻</span> KI-Daten generieren
+  </button>
+</div>
+
+<!-- SOURCE STATUS -->
+<div class="srcbar" id="srcbar">
+  <span class="srcbar-lbl">Quellen:</span>
+  <div class="ssrc" id="ss-fms"><div class="ssrc-dot"></div>fmscout.com</div>
+  <div class="ssrc" id="ss-fmi"><div class="ssrc-dot"></div>fminside.net</div>
+  <div class="ssrc" id="ss-fmb"><div class="ssrc-dot"></div>fmbase.co.uk</div>
+  <div class="ssrc" id="ss-yt"><div class="ssrc-dot"></div>YouTube</div>
+</div>
+
+<!-- ══ VIEWS ══ -->
+<div class="main" id="viewScout">
+  <div class="stats">
+    <div class="stat"><span class="stat-ico">🌟</span><div><span class="sl" data-i18n="players">Spieler</span><span class="sv" id="stT" style="color:var(--accent)">0</span></div></div>
+    <div class="stat"><span class="stat-ico">💰</span><div><span class="sl">Ø Ablöse</span><span class="sv" id="stA" style="color:var(--gold)">—</span></div></div>
+    <div class="stat"><span class="stat-ico">📈</span><div><span class="sl">Top PA</span><span class="sv" id="stP" style="color:var(--green)">—</span></div></div>
+    <div class="stat"><span class="stat-ico">🔥</span><div><span class="sl">U.5M</span><span class="sv" id="stB" style="color:var(--orange)">—</span></div></div>
+    <div class="stat"><span class="stat-ico">🕐</span><div><span class="sl">Sync</span><span class="sv" id="stTime" style="color:var(--muted);font-size:11px;font-family:var(--fm)">—</span></div></div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyEl" style="display:none"><h3>Keine Spieler</h3><p>Filter anpassen oder Daten generieren.</p></div>
+</div>
+
+<!-- SHORTLIST VIEW -->
+<div class="main view-hidden" id="viewShortlist">
+  <div class="view-header">
+    <h2 class="view-title" data-i18n="nav_shortlist">⭐ Shortlist</h2>
+    <div class="view-actions">
+      <button class="act-btn" onclick="exportShortlist()">📤 Export Excel</button>
+      <button class="act-btn" onclick="exportShortlistPDF()">📄 Export PDF</button>
+      <button class="act-btn danger" onclick="clearShortlist()">🗑 Leeren</button>
+    </div>
+  </div>
+  <div class="grid" id="shortlistGrid"></div>
+  <div class="empty" id="slEmpty" style="display:none"><h3>Shortlist leer</h3><p>Spieler mit ⭐ zur Shortlist hinzufügen.</p></div>
+</div>
+
+<!-- COMPARE VIEW -->
+<div class="main view-hidden" id="viewCompare">
+  <div class="view-header">
+    <h2 class="view-title" data-i18n="nav_compare">⚖ Spieler vergleichen</h2>
+    <div class="view-actions">
+      <button class="act-btn" onclick="clearCompare()">🗑 Auswahl leeren</button>
+    </div>
+  </div>
+  <div class="compare-hint" id="compareHint">
+    Bis zu 3 Spieler zum Vergleich auswählen — klicke auf ⚖ auf einer Spielerkarte.
+  </div>
+  <div class="compare-grid" id="compareGrid"></div>
+  <canvas id="compareChart" style="display:none;max-height:320px;margin-top:20px"></canvas>
+</div>
+
+<!-- BUDGET VIEW -->
+<div class="main view-hidden" id="viewBudget">
+  <div class="view-header">
+    <h2 class="view-title" data-i18n="nav_budget">💰 Transfer-Budget Planer</h2>
+  </div>
+  <div class="budget-layout">
+    <div class="budget-panel">
+      <div class="bp-section">
+        <label class="bp-label">Gesamtbudget (€)</label>
+        <input class="bp-input" type="number" id="budgetTotal" value="50000000" oninput="updateBudget()">
+      </div>
+      <div class="bp-section">
+        <label class="bp-label">Lohnbudget / Woche (€)</label>
+        <input class="bp-input" type="number" id="budgetWages" value="150000" oninput="updateBudget()">
+      </div>
+      <div class="bp-summary" id="budgetSummary"></div>
+      <div class="bp-section">
+        <label class="bp-label">Spieler aus Shortlist hinzufügen</label>
+        <div class="budget-player-list" id="budgetPlayerList"></div>
+      </div>
+    </div>
+    <div class="budget-chart-area">
+      <canvas id="budgetChart" style="max-height:280px"></canvas>
+      <div class="budget-transfers" id="budgetTransfers"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER MODAL -->
+<div class="overlay" id="overlay" onclick="oClick(event)">
+  <div class="modal">
+    <button class="mclose" onclick="closeM()">✕</button>
+    <div class="mhead" id="mhead"></div>
+    <div class="mbody" id="mbody"></div>
+  </div>
+</div>
+
+<input type="file" id="globalImgInput" accept="image/*" style="display:none" onchange="handleImgUpload(event)">
+<script type="module" src="app.js"></script>
+</body>
+</html>
