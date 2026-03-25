@@ -493,79 +493,273 @@ const resetSS=()=>['fms','fmi','fmb','yt'].forEach(s=>setSS(s,''));
 // ═══════════════════════════════════════
 // GENERATE OVERLAY
 // ═══════════════════════════════════════
-const GEN_STEPS=[
-  {icon:'🔵',label:'fmscout.com — Wonderkid-Listen & Top-50-Shortlists …'},
-  {icon:'🟡',label:'fminside.net — FM26-Spielerprofile & Attribut-Daten …'},
-  {icon:'🟢',label:'FM Base (fmbase.co.uk) — Blogs, Guides & Empfehlungen …'},
-  {icon:'🔴',label:'YouTube — Zealand, Squawka FM, FM Scout Kanal …'},
-  {icon:'☁️', label:'Firebase Firestore — Daten speichern …'},
+// ═══════════════════════════════════════
+// SPEZIFISCHE QUELLEN-ABFRAGEN (12 Kategorien)
+// Jede Abfrage = ein echter Post-Typ von fminside/fmscout
+// ═══════════════════════════════════════
+
+const GEN_STEPS = [
+  {icon:'🔵', label:'fmscout.com — Top 50 Wonderkids 0-5 Mio €'},
+  {icon:'🔵', label:'fmscout.com — Top 50 Wonderkids 5-20 Mio €'},
+  {icon:'🟡', label:'fminside.net — Beste Stürmer & Flügel bis 20 Mio €'},
+  {icon:'🟡', label:'fminside.net — Beste Verteidiger & TW bis 20 Mio €'},
+  {icon:'🟡', label:'fminside.net — Beste Mittelfeldspieler bis 20 Mio €'},
+  {icon:'🟢', label:'FM Base — Hidden Gems & Schnäppchen unter 5 Mio €'},
+  {icon:'🟢', label:'FM Base — Bundesliga & Ligue 1 Talente'},
+  {icon:'🔴', label:'Zealand FM — Video-Empfehlungen 2025/26'},
+  {icon:'🔴', label:'Squawka FM — Datenbasierte Top-Picks'},
+  {icon:'🔴', label:'FM Scout YT — Serie A & La Liga Geheimtipps'},
+  {icon:'🟣', label:'Deduplizieren & Qualität prüfen …'},
+  {icon:'☁️',  label:'Firebase Firestore — Daten speichern …'},
 ];
+
+// 12 hochspezifische Abfragen — wie echte Community-Posts
+const SRC_PROMPTS = [
+
+  // ── fmscout.com ──
+  { id:'fms', name:'fmscout.com (0-5 Mio €)',
+    prompt:`Du kennst die fmscout.com Wonderkid-Listen sehr genau.
+Nenne GENAU 12 Football Manager 2026 Spieler aus der fmscout.com Datenbank:
+- Ablöse zwischen 0 und 5 Millionen Euro (oder ablösefrei)
+- Maximales Alter: 21 Jahre
+- Hohes Potential (PA 160+)
+- Alle Positionen (ST, LW, RW, CAM, CM, CDM, LB, RB, CB, GK)
+
+Bekannte fmscout Empfehlungen einbeziehen (z.B. Spieler aus deren "50 best wonderkids" Liste).
+
+Format pro Spieler (STRIKT einhalten):
+NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT` },
+
+  { id:'fms', name:'fmscout.com (5-20 Mio €)',
+    prompt:`Du kennst die fmscout.com Wonderkid-Listen sehr genau.
+Nenne GENAU 12 Football Manager 2026 Spieler aus fmscout.com:
+- Ablöse zwischen 5 und 20 Millionen Euro
+- Maximales Alter: 23 Jahre
+- Hohes Potential (PA 165+)
+- Fokus: Spieler die fmscout.com in "best value" oder "top transfers" Artikeln empfiehlt
+
+Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT` },
+
+  // ── fminside.net ──
+  { id:'fmi', name:'fminside.net — Stürmer & Flügel bis 20 Mio €',
+    prompt:`Du kennst fminside.net sehr gut. Dort gibt es spezifische Posts wie:
+"Top 10 Stürmer bis 20 Mio €", "Beste Linksaußen unter 20 Mio €", "Günstige Flügelspieler FM26".
+
+Nenne GENAU 10 Stürmer/Flügelspieler (ST, LW, RW, CF) aus FM2026:
+- Ablöse MAXIMAL 20 Millionen Euro
+- Maximales Alter: 23 Jahre
+- Wie sie auf fminside.net empfohlen werden
+
+Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT` },
+
+  { id:'fmi', name:'fminside.net — Verteidiger & Torhüter bis 20 Mio €',
+    prompt:`Du kennst fminside.net sehr gut. Dort gibt es Posts wie:
+"Top 10 Innenverteidiger bis 20 Mio €", "Beste günstige Torhüter FM26", "Schnellste Außenverteidiger unter 20 Mio €".
+
+Nenne GENAU 10 Defensivspieler (CB, LB, RB, GK) aus FM2026:
+- Ablöse MAXIMAL 20 Millionen Euro
+- Maximales Alter: 24 Jahre
+- Wie sie auf fminside.net empfohlen werden
+
+Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT` },
+
+  { id:'fmi', name:'fminside.net — Mittelfeldspieler bis 20 Mio €',
+    prompt:`Du kennst fminside.net sehr gut. Dort gibt es Posts wie:
+"Beste Box-to-Box Mittelfeldspieler bis 20 Mio €", "Top Spielmacher unter 15 Mio €", "Günstige Sechser FM26".
+
+Nenne GENAU 10 Mittelfeldspieler (CM, CAM, CDM) aus FM2026:
+- Ablöse MAXIMAL 20 Millionen Euro
+- Maximales Alter: 23 Jahre
+
+Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT` },
+
+  // ── FM Base ──
+  { id:'fmb', name:'FM Base — Hidden Gems unter 5 Mio €',
+    prompt:`Du kennst FM Base (fmbase.co.uk) sehr gut. Dort gibt es "Hidden Gems" und "Bargain" Artikel.
+Typische FM Base Posts: "20 hidden gems for FM26", "Best free transfers FM26", "Cheap wonderkids under £5m".
+
+Nenne GENAU 10 versteckte Talente (Hidden Gems) aus FM2026:
+- Ablöse UNTER 5 Millionen Euro ODER ablösefrei
+- Maximales Alter: 22 Jahre
+- Spieler die oft übersehen werden aber hohes Potential haben
+- Aus weniger bekannten Ligen (Eredivisie, Ligue 1, Serie B, Brasileirao, MLS usw.)
+
+Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | WARUM_HIDDEN_GEM` },
+
+  { id:'fmb', name:'FM Base — Bundesliga & Ligue 1 Talente',
+    prompt:`Du kennst FM Base gut. Nenne GENAU 8 Talente aus Bundesliga oder Ligue 1 für FM2026:
+- Ablöse MAXIMAL 20 Millionen Euro
+- Maximales Alter: 22 Jahre
+- Bundesliga oder Ligue 1 Vereine
+- Hoher Entwicklungspotential in FM26
+
+Format: NAME | ALTER | CLUB | LIGA | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT` },
+
+  // ── YouTube ──
+  { id:'yt', name:'Zealand FM — Video-Empfehlungen 2025/26',
+    prompt:`Du kennst den YouTube-Kanal Zealand FM sehr gut.
+Zealand macht typische Videos wie: "The BEST cheap wonderkids in FM26", "Budget Strikers FM26", "Hidden gems every FM26 save needs".
+
+Nenne GENAU 10 Spieler die Zealand FM in seinen FM2026 Videos empfiehlt:
+- Ablöse MAXIMAL 20 Millionen Euro
+- Maximales Alter: 23 Jahre
+- Warum Zealand ihn empfiehlt (Spielstil, Taktik, Preis-Leistung)
+
+Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | ZEALAND_ZITAT_KURZ` },
+
+  { id:'yt', name:'Squawka FM — Datenbasierte Top-Picks',
+    prompt:`Du kennst den YouTube-Kanal Squawka Football Manager sehr gut.
+Squawka analysiert Spieler mit echten Daten. Typische Videos: "Data-driven wonderkids FM26", "Best value players per position FM26".
+
+Nenne GENAU 10 Spieler die Squawka FM datenbasiert für FM2026 empfiehlt:
+- Ablöse MAXIMAL 20 Millionen Euro
+- Maximales Alter: 24 Jahre
+- Fokus auf Preis-Leistungs-Verhältnis
+
+Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | DATENPUNKT` },
+
+  { id:'yt', name:'FM Scout YT — Serie A & La Liga Geheimtipps',
+    prompt:`Du kennst den FM Scout YouTube-Kanal sehr gut.
+FM Scout macht Videos wie: "Best Serie A wonderkids FM26", "La Liga bargains FM26", "Italian league hidden gems".
+
+Nenne GENAU 10 Spieler aus Serie A oder La Liga für FM2026:
+- Ablöse MAXIMAL 20 Millionen Euro
+- Maximales Alter: 23 Jahre
+- Serie A oder La Liga Clubs
+
+Format: NAME | ALTER | CLUB | LIGA | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT` },
+];
+
 function showGenOverlay() {
   const ov=$('genOverlay'), st=$('genSteps');
   ov.classList.add('open');
-  st.innerHTML=GEN_STEPS.map((s,i)=>`<div class="gstep" id="gs${i}"><span class="gi">⬜</span><span class="gt">${s.label}</span></div>`).join('');
+  // Show only first 6 steps in UI (others run in background)
+  st.innerHTML=GEN_STEPS.slice(0,10).map((s,i)=>`<div class="gstep" id="gs${i}"><span class="gi">⬜</span><span class="gt">${s.label}</span></div>`).join('');
   $('genBar').style.width='0%';
 }
 function stepGen(i,done) {
   const el=$(`gs${i}`); if(!el) return;
   el.className='gstep '+(done?'done':'active');
-  el.querySelector('.gi').textContent=done?GEN_STEPS[i].icon:'⏳';
+  el.querySelector('.gi').textContent=done?GEN_STEPS[i]?.icon||'✅':'⏳';
   $('genBar').style.width=Math.round((i+(done?1:.5))/GEN_STEPS.length*100)+'%';
 }
 function hideGenOverlay() { $('genOverlay').classList.remove('open'); }
 
-// ═══════════════════════════════════════
-// GROQ API
-// ═══════════════════════════════════════
-async function groq(messages, model='llama-3.3-70b-versatile', max_tokens=4000, temp=0.3) {
-  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${gk()}`},body:JSON.stringify({model,max_tokens,temperature:temp,messages})});
-  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
-  return (await r.json()).choices?.[0]?.message?.content||'';
-}
-
-const SRC_PROMPTS=[
-  {id:'fms',name:'fmscout.com',prompt:`Liste 12 FM2026 Wonderkids aus fmscout.com. Unter 20 Mio €, max. 23J. Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT`},
-  {id:'fmi',name:'fminside.net',prompt:`Liste 10 FM2026 Talente aus FMInside. Unter 20 Mio €, max. 23J. Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT`},
-  {id:'fmb',name:'FM Base',prompt:`Liste 10 FM2026 Geheimtipps aus FM Base Guides. Unter 20 Mio €, max. 23J. Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | BESONDERHEIT`},
-  {id:'yt', name:'YouTube (Zealand, Squawka FM, FM Scout YT)',prompt:`Liste 12 Spieler aus FM2026 YouTube-Videos (Zealand, Squawka FM, FM Scout). Unter 20 Mio €, max. 23J. Format: NAME | ALTER | CLUB | NATION | POSITION | CA | PA | ABLÖSE_MIO | YOUTUBER`},
-];
+// ── JSON Schema for merge ──
+const JSON_SCHEMA = `{"id":"slug-name","name":"Vollständiger Name","age":int,"born":int,"club":"Vereinsname","nation":"Nationalität DE","flag":"🏳 Emoji","league":"Bundesliga|Premier League|La Liga|Serie A|Ligue 1|Eredivisie|Other","pos":["ST"],"positions":"ST, LW","price":int (0=ablösefrei/nicht verkäuflich),"priceLabel":"~X Mio €|Ablösefrei|Nicht verkäuflich","ca":int 95-175,"pa":int 140-200,"attrs":{"Pace":int,"Dribbling":int,"Technique":int,"Finishing":int,"Passing":int,"Jumping":int,"Strength":int,"Work_Rate":int,"Tackling":int,"Vision":int},"foot":"Rechts|Links|Beide","height":"XXX cm","weight":"XX kg","contract":"Jahr","dev":int 60-98,"emoji":"⚽","sources":["fmscout|fminside|fmbase|youtube"],"srcNote":"Quelle/YouTuber","note":"Scout-Notiz max 15 Wörter","ribbon":""|"🔥 HOT"|"💎 GEM"|"💰 VALUE"|"🏆 WELTKLASSE"|"⚡ SPEEDSTER"}`;
 
 async function generateData() {
   if(!gk()){toast(t('no_key'),'var(--red)','#fff');$('setupOverlay').style.display='flex';return;}
   if(!db){toast('⚠ Firebase nicht verbunden','var(--red)','#fff');return;}
   const btn=$('genBtn'); btn.classList.add('loading');btn.disabled=true;
   resetSS();showGenOverlay();
+
   try {
     const raw=[];
+    // Run all 10 source prompts
     for(let i=0;i<SRC_PROMPTS.length;i++){
-      const src=SRC_PROMPTS[i]; stepGen(i,false);setSS(src.id,'loading');$('genInfo').textContent=src.name+' …';
-      try{const res=await groq([{role:'system',content:'FM2026-Experte. Antworte auf Deutsch.'},{role:'user',content:src.prompt}],'llama-3.3-70b-versatile',900,0.4);raw.push({src:src.name,id:src.id,data:res});setSS(src.id,'ok');}
-      catch(e){setSS(src.id,'err');raw.push({src:src.name,id:src.id,data:'[Fehler]'});}
-      stepGen(i,true);await sleep(300);
+      const src=SRC_PROMPTS[i];
+      stepGen(i,false);
+      setSS(src.id,'loading');
+      $('genInfo').textContent=`${i+1}/10 · ${src.name} …`;
+      try{
+        const res=await groq(
+          [{role:'system',content:'Du bist FM2026-Experte mit tiefem Wissen über FM-Community-Seiten und YouTube-Kanäle. Antworte IMMER auf Deutsch. Halte das angegebene Format STRIKT ein.'},
+           {role:'user',content:src.prompt}],
+          'llama-3.3-70b-versatile', 1100, 0.35
+        );
+        raw.push({src:src.name, id:src.id, data:res});
+        setSS(src.id,'ok');
+      } catch(e) {
+        setSS(src.id,'err');
+        raw.push({src:src.name, id:src.id, data:'[Fehler bei '+src.name+']'});
+      }
+      stepGen(i,true);
+      await sleep(250);
     }
-    stepGen(4,false);$('genInfo').textContent='Firebase befüllen …';
-    const combined=raw.map(r=>`=== ${r.src} ===\n${r.data}`).join('\n\n');
-    const jsonText=await groq([
-      {role:'system',content:`FM2026 Datenstruktur. Antworte NUR mit JSON-Array. Kein Text, kein Markdown.
-Schema:{"id":"slug","name":"str","age":int,"born":int,"club":"str","nation":"str","flag":"emoji","league":"Bundesliga|Premier League|La Liga|Serie A|Ligue 1|Eredivisie|Other","pos":["POS"],"positions":"str","price":int,"priceLabel":"str","ca":int,"pa":int,"attrs":{"Pace":int,"Dribbling":int,"Technique":int,"Finishing":int,"Passing":int,"Jumping":int,"Strength":int,"Work_Rate":int,"Tackling":int,"Vision":int},"foot":"Rechts|Links|Beide","height":"str","weight":"str","contract":"str","dev":int,"emoji":"emoji","sources":["arr"],"srcNote":"str","note":"str","ribbon":""|"🔥 HOT"|"💎 GEM"|"💰 VALUE"|"🏆 WELTKLASSE"|"⚡ SPEEDSTER"}`},
-      {role:'user',content:`JSON-Array. 25-40 Spieler, keine Duplikate, max 23J, max 20Mio€, PA absteigend.\n\n${combined}`}
-    ],'llama-3.3-70b-versatile',5000,0.15);
-    const clean=jsonText.replace(/```json|```/g,'').trim();
-    let parsed=[];
-    try{parsed=JSON.parse(clean);}catch(e){const m=clean.match(/\[[\s\S]*\]/);if(m)try{parsed=JSON.parse(m[0]);}catch(e2){}}
-    if(parsed.length>0){
-      await savePlayers(parsed); stepGen(4,true); hideGenOverlay();
-      players=parsed; $('stTime').textContent=new Date().toLocaleTimeString('de-CH');
-      doFilter();updateStats();
-      toast(`✓ ${parsed.length} ${t('saved')}`,'var(--green)','#000');
-    } else { hideGenOverlay(); toast('⚠ Parse-Fehler — nochmal versuchen','var(--orange)','#000'); }
+
+    // Step 10: Deduplicate + validate budget filter
+    stepGen(10,false);
+    $('genInfo').textContent='Deduplizieren & Budget-Filter (max. 20 Mio €) …';
+    const combined = raw.map(r=>`
+=== ${r.src} ===
+${r.data}`).join('
+');
+
+    // Split into 2 batches for the merge (token limit)
+    const half = Math.ceil(raw.length/2);
+    const batch1 = raw.slice(0,half).map(r=>`=== ${r.src} ===
+${r.data}`).join('
+');
+    const batch2 = raw.slice(half).map(r=>`=== ${r.src} ===
+${r.data}`).join('
+');
+
+    async function mergeBatch(text, idOffset=0) {
+      const res = await groq([
+        { role:'system', content:`FM2026 Datenstruktur-Experte. Antworte NUR mit JSON-Array. Kein Text, kein Markdown, keine Backticks.
+Schema pro Objekt: ${JSON_SCHEMA}
+
+WICHTIGE REGELN:
+1. ALLE Spieler müssen Ablöse ≤ 20.000.000 Euro haben (price ≤ 20000000)
+2. ALLE Spieler müssen ≤ 24 Jahre alt sein
+3. Ablösefreie Spieler: price=0, priceLabel="Ablösefrei"
+4. Nicht verkäuflich (z.B. Barça-Jugend): price=0, priceLabel="Nicht verkäuflich"
+5. Realistische FM26 CA/PA Werte (CA 95-175, PA 140-200)
+6. Attribute realistisch 50-99
+7. id = slug des Namens (lowercase, bindestrich statt leerzeichen)
+8. Sortiere nach PA absteigend` },
+        { role:'user', content:`Konvertiere diese Rohdaten in JSON. Entferne Duplikate (gleicher Name). Nur Spieler mit Ablöse ≤ 20 Mio €. Min. 15 Spieler aus diesen Quellen extrahieren.
+
+${text}` }
+      ], 'llama-3.3-70b-versatile', 6000, 0.1);
+      const clean = res.replace(/```json|```/g,'').trim();
+      try { return JSON.parse(clean); }
+      catch(e) { const m=clean.match(/\[[\s\S]*\]/); return m ? JSON.parse(m[0]) : []; }
+    }
+
+    const [list1, list2] = await Promise.all([mergeBatch(batch1), mergeBatch(batch2)]);
+    stepGen(10,true);
+
+    // Final dedup by name
+    const allPlayers = [...list1, ...list2];
+    const seen = new Set();
+    const deduped = allPlayers
+      .filter(p => {
+        const key = (p.name||'').toLowerCase().trim();
+        if (seen.has(key) || !key) return false;
+        seen.add(key); return true;
+      })
+      .filter(p => (p.price||0) <= 20000000) // Hard budget filter
+      .sort((a,b) => (b.pa||0)-(a.pa||0));
+
+    // Step 11: Save to Firebase
+    stepGen(11,false);
+    $('genInfo').textContent=`${deduped.length} Spieler → Firebase speichern …`;
+
+    if(deduped.length > 0){
+      await savePlayers(deduped);
+      stepGen(11,true);
+      hideGenOverlay();
+      players = deduped;
+      $('stTime').textContent = new Date().toLocaleTimeString('de-CH');
+      doFilter(); updateStats();
+      checkForNewPlayers(deduped);
+      ['fms','fmi','fmb','yt'].forEach(s=>setSS(s,'ok'));
+      toast(`✓ ${deduped.length} Spieler (0-20 Mio €) geladen!`, 'var(--green)', '#000');
+    } else {
+      hideGenOverlay();
+      toast('⚠ Keine validen Spieler — Budget-Filter zu streng?', 'var(--orange)', '#000');
+    }
+
   } catch(e) {
-    hideGenOverlay();console.error(e);
-    if(e.message?.includes('401')){toast('⚠ Ungültiger Groq Key','var(--red)','#fff');}
-    else toast('Fehler: '+e.message?.slice(0,50),'var(--red)','#fff');
-  } finally {btn.classList.remove('loading');btn.disabled=false;}
+    hideGenOverlay(); console.error(e);
+    if(e.message?.includes('401')) toast('⚠ Ungültiger Groq Key','var(--red)','#fff');
+    else toast('Fehler: '+e.message?.slice(0,60),'var(--red)','#fff');
+  } finally { btn.classList.remove('loading'); btn.disabled=false; }
 }
 window.generateData = generateData;
+
 
 // ═══════════════════════════════════════
 // FILTER & RENDER
